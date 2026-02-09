@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "members/crate_a",
+    "members/crate_b",
+    "members/crate_b/nested_c",
+]
+exclude = [
+    "excluded/isolated_crate",
+    "nested_ws",
+]
+resolver = "2"
