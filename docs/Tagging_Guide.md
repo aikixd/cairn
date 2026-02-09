@@ -14,10 +14,20 @@ We use a minimal set of tags to capture the system's "shape" without overwhelmin
 *   Public API boundaries (library `lib.rs` exports).
 **Example**:
 ```rust
-/// [map:entry]
+/// [nb:entry]
 /// CLI entry point. Orchestrates argument parsing and dispatches commands.
 fn main() { ... }
 ```
+
+### Tag Format
+
+```rust
+/// [nb:tag_name] optional_key=value
+/// Description of what this item is and why it matters.
+pub fn my_function() { ... }
+```
+
+> **Note**: The default prefix is `nb`. It can be configured via `--prefix <custom>` in the CLI.
 
 ### 2. `concept` (or `info`)
 **Purpose**: Marks types or modules that represent core domain concepts or architectural components. Focus on the *meaningful* abstractions, not implementation details.
@@ -27,7 +37,7 @@ fn main() { ... }
 *   Do NOT mark helper structs, private builders, or trivial enums.
 **Example**:
 ```rust
-/// [map:concept]
+/// [nb:concept]
 /// Represents a single item in the code map. Contains location, summary, and metadata.
 pub struct MapEntry { ... }
 ```
@@ -40,7 +50,7 @@ pub struct MapEntry { ... }
 *   Standard ways to initialize or configure the system.
 **Example**:
 ```rust
-/// [map:recipe] tags=utils
+/// [nb:recipe] tags=utils
 /// Resolves the absolute path of a crate root given a file path, handling workspace boundaries.
 fn resolve_crate_root(file: &Path) -> PathBuf { ... }
 ```

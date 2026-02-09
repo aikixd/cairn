@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// [map:concept]
+/// [nb:concept]
 /// Represents a single item in the code map.
 /// Contains the tag, anchor (name), file location, summaries, and extension metadata.
 pub struct MapEntry {

@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-/// [map:recipe]
+/// [nb:recipe]
 /// Walks the directory tree to find all Rust source files, respecting `.gitignore` via the `walkdir` crate.
 /// Returns absolute paths to `.rs` files.
 pub fn scan_workspace(root: &Path) -> Result<Vec<PathBuf>> {

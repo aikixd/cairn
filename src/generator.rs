@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::fs;
 use std::path::PathBuf;
 
-/// [map:entry]
+/// [nb:entry]
 /// Generates the Markdown and JSON outputs from the collected map entries.
 /// Groups entries by tag and sorts them deterministically.
 pub fn generate(entries: &[MapEntry], out_md: &PathBuf, out_json: Option<&PathBuf>) -> Result<()> {

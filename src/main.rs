@@ -27,10 +27,12 @@ enum Commands {
         out_md: PathBuf,
         #[arg(long)]
         out_json: Option<PathBuf>,
+        #[arg(long, default_value = "nb")]
+        prefix: String,
     },
 }
 
-/// [map:entrypoint]
+/// [nb:entrypoint]
 /// The main entry point for the CLI.
 /// Orchestrates the `gen` command.
 fn main() -> Result<()> {
@@ -41,6 +43,7 @@ fn main() -> Result<()> {
             root,
             out_md,
             out_json,
+            prefix,
         } => {
             // 1. Resolve workspace crate map
             let crate_map = resolve_crate_map(root)?;
@@ -51,7 +54,7 @@ fn main() -> Result<()> {
             println!("Found {} Rust files", files.len());
 
             // 3. Parse files
-            let mut parser = RustParser::new()?;
+            let mut parser = RustParser::new(prefix)?;
             let mut all_entries = Vec::new();
 
             for file_path in files {
@@ -86,7 +89,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// [map:recipe]
+/// [nb:recipe]
 /// recursively discovers all `Cargo.toml` files in a directory tree and resolves their crate names.
 /// Useful for handling complex workspaces, excluded members, and nested repositories.
 fn resolve_crate_map(root: &PathBuf) -> Result<HashMap<PathBuf, String>> {

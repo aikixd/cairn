@@ -4,20 +4,24 @@ use std::fs;
 use std::path::Path;
 use tree_sitter::{Node, Parser};
 
-/// [map:concept]
+/// [nb:concept]
 /// The core parsing engine using Tree-sitter.
 /// Responsible for reading Rust files, extracting doc comments with tags, and finding the associated "anchor" items (functions, structs, etc.).
 pub struct RustParser {
     parser: Parser,
+    prefix: String,
 }
 
 impl RustParser {
-    pub fn new() -> Result<Self> {
+    pub fn new(prefix: &str) -> Result<Self> {
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_rust::LANGUAGE.into())
             .context("Error loading Rust grammar")?;
-        Ok(Self { parser })
+        Ok(Self {
+            parser,
+            prefix: prefix.to_string(),
+        })
     }
 
     pub fn parse_file(
@@ -138,12 +142,14 @@ impl RustParser {
     }
 
     fn parse_comment(&self, text: &str) -> Option<(String, String, String)> {
-        // Looking for /// [map:<tag>] ...
-        // or // [map:<tag>] ...
+        // Looking for /// [prefix:<tag>] ...
         let content = text.trim_start_matches('/').trim();
-        if content.starts_with("[map:") {
+        let prefix_marker = format!("[{}:", self.prefix);
+
+        if content.starts_with(&prefix_marker) {
             if let Some(end_bracket) = content.find(']') {
-                let tag = &content[5..end_bracket];
+                let tag_start = prefix_marker.len();
+                let tag = &content[tag_start..end_bracket];
                 let rest = &content[end_bracket + 1..];
                 // Split rest into metadata (key=value) and description
                 // For now simple heuristic

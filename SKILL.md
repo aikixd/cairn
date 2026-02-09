@@ -12,6 +12,7 @@ This skill allows you to leverage the project's curated code map to quickly unde
     *   Command: `ls docs/map.generated.md` -> `view_file docs/map.generated.md`
 2.  **Generate if missing**: If the map is missing or feels stale, run the generator.
     *   Command: `cargo run -- gen` (or `codemap gen` if installed)
+    *   Note: Default tag prefix is `nb`. Use `--prefix <custom>` if needed.
 3.  **Interpret the Map**:
     *   `entry`: Start here to trace execution flow.
     *   `concept`: Read these to understand the domain model.
@@ -21,14 +22,14 @@ This skill allows you to leverage the project's curated code map to quickly unde
 
 When writing *new* code, you should tag it if it meets the criteria:
 
-*   **Entry Points**: `/// [map:entry]` for main functions, significant public APIs, or process starters.
-*   **Core Concepts**: `/// [map:concept]` for structs/enums that define the domain.
-*   **Recipes**: `/// [map:recipe]` for utilities you want others (including future-you or AI) to find easily.
+*   **Entry Points**: `/// [nb:entry]` for main functions, significant public APIs, or process starters.
+*   **Core Concepts**: `/// [nb:concept]` for structs/enums that define the domain.
+*   **Recipes**: `/// [nb:recipe]` for utilities you want others (including future-you or AI) to find easily.
 
 ### Tag Format
 
 ```rust
-/// [map:tag_name] optional_key=value
+/// [nb:tag_name] optional_key=value
 /// Description of what this item is and why it matters.
 pub fn my_function() { ... }
 ```
