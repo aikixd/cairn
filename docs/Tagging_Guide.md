@@ -1,4 +1,4 @@
-# Tagging Guide: `codemap` and LLM Interaction
+# Tagging Guide: `cairn` and LLM Interaction
 
 This guide defines the standard tags and conventions for marking Rust codebases to generate useful, low-noise code maps. These maps help both humans and LLMs navigate the system effectively.
 
@@ -29,7 +29,7 @@ pub fn my_function() { ... }
 
 > **Note**: The default prefix is `nb`. It can be configured via `--prefix <custom>` in the CLI.
 
-### 2. `concept` (or `info`)
+### 2. `core`
 **Purpose**: Marks types or modules that represent core domain concepts or architectural components. Focus on the *meaningful* abstractions, not implementation details.
 **When to use**:
 *   Data models that are central to the system (e.g., `MapEntry`, `CrateMap`).
@@ -37,7 +37,7 @@ pub fn my_function() { ... }
 *   Do NOT mark helper structs, private builders, or trivial enums.
 **Example**:
 ```rust
-/// [nb:concept]
+/// [nb:core]
 /// Represents a single item in the code map. Contains location, summary, and metadata.
 pub struct MapEntry { ... }
 ```
@@ -55,6 +55,20 @@ pub struct MapEntry { ... }
 fn resolve_crate_root(file: &Path) -> PathBuf { ... }
 ```
 
+### 4. `invariant`
+**Purpose**: Marks constraints, rules, or architectural decisions that must NOT be violated. This is about *what not to do* based on design intent, not *how to do it*.
+**When to use**:
+*   Near code that enforces a critical constraint (macros, validators, interfaces).
+*   To document decisions from RFCs that should never be violated.
+*   To prevent common mistakes or anti-patterns.
+*   When there's a "never do X, always do Y" rule.
+**Example**:
+```rust
+/// [nb:invariant] rfc=RFC-0007
+/// Never hand-roll integer wrappers; use `define_named!` macro instead.
+pub macro define_named { ... }
+```
+
 ## Best Practices for Summaries
 
 *   **Be Conclusive**: Start with a verb or noun phrase describing *what it is*.
@@ -67,5 +81,6 @@ fn resolve_crate_root(file: &Path) -> PathBuf { ... }
 When analyzing a codebase:
 1.  Check for `docs/map.generated.md` first.
 2.  Use the map to find relevant `entry` points for the task.
-3.  Consult `concept` entries to understand the data flow.
-4.  Check `recipe` entries before implementing new helpers to avoid reinvention.
+3.  Consult `core` entries to understand the domain model and data flow.
+4.  Review `invariant` entries to understand critical constraints before making changes.
+5.  Check `recipe` entries before implementing new helpers to avoid reinvention.

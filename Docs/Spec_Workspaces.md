@@ -1,6 +1,6 @@
 # Spec: Workspace & Crate Resolution
 
-This document specifies the behavior of `codemap` regarding Rust workspaces, crate discovery, and name resolution.
+This document specifies the behavior of `cairn` regarding Rust workspaces, crate discovery, and name resolution.
 
 ## Core Principle
 

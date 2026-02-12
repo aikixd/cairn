@@ -1,0 +1,77 @@
+# cairn
+
+A curated code map generator that helps humans and AI agents navigate Rust codebases through developer-tagged landmarks.
+
+## What is this?
+
+`cairn` generates low-noise, high-signal code maps from inline documentation tags. Instead of dumping every symbol or auto-generating brittle documentation, it surfaces only what developers explicitly mark as important.
+
+## How it works
+
+Developers add special doc-comment tags to mark significant code:
+
+```rust
+/// [nb:entry]
+/// CLI entry point - orchestrates command dispatch
+fn main() { ... }
+
+/// [nb:core]
+/// Represents a tagged code item with location and metadata
+pub struct MapEntry { ... }
+
+/// [nb:invariant] rfc=RFC-0007
+/// Never hand-roll integer wrappers; always use `define_named!` macro
+pub macro define_named { ... }
+
+/// [nb:recipe] tags=utils
+/// Resolves crate root paths for workspace-aware file mapping
+fn resolve_crate_root(file: &Path) -> PathBuf { ... }
+```
+
+The tool scans the codebase, extracts tagged items, and generates `docs/map.generated.md` - a curated, browsable map grouped by tag type.
+
+## Why this exists
+
+**Problem**: Auto-generated docs overwhelm with noise. Symbol dumps lack context. Humans forget where things are. AI agents waste time exploring irrelevant code.
+
+**Solution**: Developers curate what matters. Agents read the map first, then dive into relevant areas. Think of it as developer-maintained "landmarks" for code navigation.
+
+## Key differentiators
+
+- **Curated, not comprehensive**: Only tagged items appear - no symbol enumeration
+- **Context-rich**: Tags carry intent (entry points, core concepts, constraints, recipes)
+- **Workflow-integrated**: Supports RFC links, recipe references, custom metadata
+- **Workspace-aware**: Correctly handles Rust workspaces, nested crates, excluded members
+
+## When to use this tool
+
+**For agents analyzing a codebase:**
+1. Check if `docs/map.generated.md` exists
+2. Read it first to understand the architecture
+3. Use it to route to relevant entry points and concepts
+
+**For agents writing code:**
+1. Tag new significant code (entry points, core types, constraints, utilities)
+2. Regenerate the map to keep it current
+3. Reference RFCs and recipes in tag metadata for traceability
+
+**For setting up a project:**
+1. Install: `cargo install cairn` (or build from source)
+2. Run: `cairn gen` to generate initial map
+3. Commit `docs/map.generated.md` to version control
+4. Add tagging to development workflow
+
+## Learning more
+
+Run `cairn llm-skill` to get the complete workflow guide for AI agents, including:
+- Detailed tagging conventions
+- How to integrate this into your agent workflow/instructions
+- Best practices for tag selection and descriptions
+- Examples and verification checklists
+
+## Tag types
+
+- **entry**: Starting points (main functions, API boundaries, subsystem entry points)
+- **core**: Domain concepts and architectural components
+- **invariant**: Constraints and rules that must not be violated
+- **recipe**: Reusable utilities and patterns ("how to do X")

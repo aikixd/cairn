@@ -30,6 +30,10 @@ enum Commands {
         #[arg(long, default_value = "nb")]
         prefix: String,
     },
+    /// Print a concise description of this tool for LLM agents
+    LlmDesc,
+    /// Print the complete LLM skill document for agent workflow integration
+    LlmSkill,
 }
 
 /// [nb:entrypoint]
@@ -84,6 +88,12 @@ fn main() -> Result<()> {
 
             // 4. Generate Output
             generator::generate(&all_entries, out_md, out_json.as_ref())?;
+        }
+        Commands::LlmDesc => {
+            print!("{}", include_str!("llm_desc.txt"));
+        }
+        Commands::LlmSkill => {
+            print!("{}", include_str!("llm_skill.txt"));
         }
     }
     Ok(())

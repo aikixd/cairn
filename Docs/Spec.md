@@ -14,7 +14,7 @@ Generate a **curated, low-noise code map** from inline Rust doc-comment tags, pr
 
 ### Tagging Convention (source-of-truth)
 
-A tagged note is a Rust doc-comment block beginning with a directive line:
+A tagged note is a Rust doc-comment block (`///` or `//!`) beginning with a directive line:
 
 ```rust
 /// [map:<tag>] key=value key=value ...
@@ -35,8 +35,7 @@ A tagged note is a Rust doc-comment block beginning with a directive line:
 
 For each tagged block, emit exactly **one map entry**:
 
-* **Anchor**: nearest “item” name above/at the doc block (best-effort):
-
+* **Anchor**: nearest “item” name at the doc block (best-effort):
   * macro invocation name / `macro_rules!` name / `struct` / `enum` / `trait` / `fn` / `mod`
   * If no item can be confidently detected, fall back to `path:line`.
 * **Summary**: collapse description lines into a single paragraph (preserve short bullets if present).
@@ -59,21 +58,15 @@ Generate these Markdown files (overwrite deterministically):
 
      * `base::qol::define_named!` — Defines integer newtype wrappers to avoid primitive obsession. (RFC-0007, recipe: docs/recipes/ids.md)
 
-2. Optional: `docs/map.generated.json`
-
-   * Machine-readable list of entries:
-
-     * `{ tag, anchor, file, line, summary, meta }`
 
 ### CLI
 
-`codemap [command] [options]`
+`cairn [command] [options]`
 
 Commands:
 
-* `codemap gen` (default): generate outputs
-* `codemap check`: exit non-zero if generated output differs from checked-in file(s)
-* `codemap lint` (optional): validate tagged blocks (unknown keys, missing tag, overlong summaries, etc.)
+* `cairn gen` (default): generate outputs
+* `cairn lint` (optional): validate tagged blocks (unknown keys, missing tag, overlong summaries, etc.)
 
 Options:
 
@@ -87,12 +80,5 @@ Options:
 
 * Output must be stable across runs (fixed ordering, normalized whitespace).
 * Recommended workflow:
-
   * Commit `docs/map.generated.md`
-  * CI runs `codemap check`
 
-### Non-goals (v1)
-
-* Full parsing via Rust AST (regex/line-based “good enough” is fine initially).
-* Building call graphs, dependency graphs, or listing every symbol.
-* Extracting from non-Rust files (can be added later).

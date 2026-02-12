@@ -1,5 +1,5 @@
 [package]
-name = "marked-code-map"
+name = "cairn"
 version = "0.1.0"
 edition = "2024"
 
@@ -13,3 +13,7 @@ serde_json = "1.0.149"
 tree-sitter = "0.26.5"
 tree-sitter-rust = "0.24.0"
 walkdir = "2.5.0"
+
+[[bin]]
+name = "cairn"
+path = "src/main.rs"
