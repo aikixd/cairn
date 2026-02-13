@@ -1,0 +1,84 @@
+# Cairn Workflow & Instructions
+
+**Context**: This workspace uses the `cairn` tool to maintain a persistent code map.
+**Mandate**: All code changes must adhere to the tagging rules defined below to ensure the map remains accurate.
+
+## 1. Activation
+**Status: ALWAYS ACTIVE**
+You are required to use the Cairn tagging workflow for all code modifications in this session.
+*   **Assumption**: The user intends to use Cairn. Do not infer "Inactive" status from empty directories or missing files.
+*   **Missing Tool**: If `cairn` is not installed, **apply tags anyway**, then notify the user that map generation skipped.
+
+## 2. Core Philosophy: High Signal, Low Noise
+The goal of Cairn is to create a **human and LLM navigable map**, not a complete symbol table.
+*   **Curated**: Only tag items that are structurally significant.
+*   **Concise**: Explain *why* an item exists, not just *what* it does.
+*   **Exclusive**: If in doubt, **DO NOT TAG**. A cluttered map is worse than an empty one.
+
+## 3. The Protocol
+
+### Phase A: Discovery (Read-First)
+Before writing code or answering complex questions, you MUST:
+1. Check for `docs/map.generated.md`.
+2. If it exists, READ IT.
+3. Use the map to locate `entry` points, `core` types, and `invariant` rules.
+
+### Phase B: Planning (Task integration)
+When creating your implementation plan, you MUST explicitly include tagging steps.
+1. Identify which new/modified components will require tags (`core` structs, `entry` points).
+2. Add a specific checklist item for tagging: `- [ ] Add/Update Cairn tags for [Component]`
+
+### Phase C: Implementation (Tag-Always)
+Every time you scaffold, write or modify significant code (Structs, Enums, Public Functions, Modules), you MUST apply tags.
+
+**Syntax Rules:**
+
+1.  **Format**:
+    ```rust
+    /// [nb:<TYPE>] <Optional Key=Value> <Summary Line>
+    /// <Description Body>
+    ```
+    *   `TYPE`: Must be one of `entry`, `core`, `invariant`, `recipe`.
+    *   `Key=Value` (Optional): Metadata like `rfc=001` or `complexity=high`.
+    *   `Summary`: Can start on the same line OR the next line.
+    *   `Termination`: The description ends at the first **blank doc-comment line** or **non-doc line**.
+
+**Rendering Logic (How it appears in the map):**
+
+*Input Code:*
+```rust
+/// [nb:core] complexity=high
+/// Central state machine for the consensus engine.
+/// Handles leader election and log replication.
+///
+/// This part is NOT included in the map summary (after blank line).
+pub struct Consensus { ... }
+```
+
+*Output Map Entry:*
+> **Consensus** (core)
+> Central state machine for the consensus engine. Handles leader election and log replication.
+> *Metadata*: complexity=high
+
+**Tag Types (Choose Carefully):**
+
+*   **`core`**: Primary Domain Entities, Architectural Hubs, Key Abstractions.
+    *   *Heuristic*: Tag this if you would mention it during the first 5 minutes of onboarding a new developer.
+    *   *Avoid*: Utilities, simple data bags, boilerplate, helpers.
+*   **`invariant`**: Critical Constraints, Security Boundaries, "Never Do X"/"Always Do Y" Rules.
+    *   *Usage*: Tag near code that enforces rules (validators, newtypes). MUST explain consequences of violation.
+*   **`entry`**: Execution Roots.
+    *   *Usage*: CLI commands, API route handlers, Event loop main threads, Main business logic entry points.
+*   **`recipe`**: Idiomatic Patterns, Workarounds, Complex Setup Helpers.
+    *   *Usage*: Code that answers "How do I do X?" or "Why is it done this way?".
+
+### Phase D: Synchronization
+After modifying code:
+1. Run `cairn gen` to update the map.
+2. Check the command output.
+    *   *If errors reported*: Fix syntax/location and retry.
+    *   *If success*: Proceed.
+
+## 4. Project-Specific Addendums
+(Agent: You may append project-specific priorities here, e.g., "Prioritize performance over readability for this specific module")
+- [No active addendums]
