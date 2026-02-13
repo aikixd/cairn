@@ -1,425 +1,88 @@
-# cairn: AI Agent Workflow Integration
+# Cairn Workflow & Instructions
 
-## Important: This is a Workflow, Not Just a Tool
+**Context**: This workspace uses the `cairn` tool to maintain a persistent code map.
+**Mandate**: All code changes must adhere to the tagging rules defined below to ensure the map remains accurate.
 
-**If you are an AI agent learning to use this tool, understand that this is not just adding a command to your toolbox - this changes HOW you work with codebases.**
+## 1. Activation
+**Status: ALWAYS ACTIVE**
+You are required to use the Cairn tagging workflow for all code modifications in this session.
+*   **Assumption**: The user intends to use Cairn. Do not infer "Inactive" status from empty directories or missing files.
+*   **Missing Tool**: If `cairn` is not installed, **apply tags anyway**, then notify the user that map generation skipped.
 
-After reading this, you should **update your agent instructions/workflow file** (e.g., `agent.md`, `claude.md`, system instructions, or equivalent) to include the tagging workflow. This is not optional - without tagging, the tool becomes useless.
+## 2. Core Philosophy: High Signal, Low Noise
+The goal of Cairn is to create a **human and LLM navigable map**, not a complete symbol table.
+*   **Curated**: Only tag items that are structurally significant.
+*   **Concise**: Explain *why* an item exists, not just *what* it does.
+*   **Exclusive**: If in doubt, **DO NOT TAG**. A cluttered map is worse than an empty one.
 
----
+## 3. The Protocol
 
-## Tool Discovery & Initial Learning
+### Phase A: Discovery (Read-First)
+Before writing code or answering complex questions, you MUST:
+1. Check for `docs/map.generated.md`.
+2. If it exists, READ IT.
+3. Use the map to locate `entry` points, `core` types, and `invariant` rules.
 
-### How you probably got here
+### Phase B: Planning (Task integration)
+When creating your implementation plan, you MUST explicitly include tagging steps.
+1. Identify which new/modified components will require tags (`core` structs, `entry` points).
+2. Add a specific checklist item for tagging: `- [ ] Add/Update Cairn tags for [Component]`
 
-1. User said something like: "learn to use `cairn`" or "use the cairn tool"
-2. You ran `cairn --help` and saw `llm-desc` and `llm-skill` commands
-3. You ran `cairn llm-desc` to understand what it does
-4. Now you're reading this for the complete workflow
+### Phase C: Implementation (Tag-Always)
+Every time you scaffold, write or modify significant code (Structs, Enums, Public Functions, Modules), you MUST apply tags.
 
-### What this tool does
+**Syntax Rules:**
 
-`cairn` generates curated code maps from developer-tagged landmarks in Rust codebases. Think of it as a human-maintained "table of contents" for code, showing:
-- **Entry points** (where execution starts)
-- **Core concepts** (domain model and architecture)
-- **Invariants** (rules that must not be violated)
-- **Recipes** (reusable utilities and patterns)
+1.  **Format**:
+    ```rust
+    /// [nb:<TYPE>] <Optional Key=Value> <Summary Line>
+    /// <Description Body>
+    ```
+    *   `TYPE`: Must be one of `entry`, `core`, `invariant`, `recipe`.
+    *   `Key=Value` (Optional): Metadata like `rfc=001` or `complexity=high`.
+    *   `Summary`: Can start on the same line OR the next line.
+    *   `Termination`: The description ends at the first **blank doc-comment line** or **non-doc line**.
 
-Output: `docs/map.generated.md` - a browsable, grouped map of tagged items.
+**Forbidden / Incorrect Patterns (DO NOT USE):**
+*   ❌ `// [nb:core]` (Double slash is ignored. Use `///`)
+*   ❌ `[nb:core]` (Missing comment syntax)
+*   ❌ `/// [nb:unknown]` (Invalid type)
 
----
+**Rendering Logic (How it appears in the map):**
 
-## Reading Existing Code Maps
-
-### Step 1: Check for the map
-
-Always look for `docs/map.generated.md` first when exploring a codebase:
-
-```bash
-ls docs/map.generated.md
-# If exists: read it first before diving into code
-```
-
-### Step 2: Interpret the structure
-
-The map is organized by tag type:
-
-- **`entry`**: Start here to trace execution flow
-  - Main functions, CLI handlers, API boundaries
-  - Subsystem entry points
-  
-- **`core`**: Understand the domain model
-  - Key data structures and types
-  - Architectural components
-  - Business logic abstractions
-
-- **`invariant`**: Critical constraints - READ BEFORE MAKING CHANGES
-  - Rules that must not be violated
-  - Architectural decisions from RFCs
-  - "Never do X, always do Y" patterns
-  
-- **`recipe`**: Reusable solutions
-  - Helper functions for common tasks
-  - Macros that reduce boilerplate
-  - Standard initialization patterns
-
-### Step 3: Navigate efficiently
-
-1. Find relevant `entry` points for your task
-2. Check related `core` types to understand data flow
-3. **Review `invariant` tags** to avoid violating constraints
-4. Check `recipe` tags before implementing utilities (avoid reinventing)
-
-### Step 4: Generate if missing/stale
-
-If the map doesn't exist or seems outdated:
-
-```bash
-cairn gen
-# Default: scans codebase, outputs to docs/map.generated.md
-# Tag prefix: 'nb' (configurable via --prefix)
-```
-
----
-
-## CRITICAL: Writing Code with Tags
-
-### ⚠️ THE CARDINAL RULE ⚠️
-
-**When you write new code, you MUST add appropriate tags. Without tags, the map becomes stale and useless.**
-
-This is not a "nice to have" - it's a core workflow requirement. If you forget to tag, you're breaking the tool.
-
-### How to remember (your responsibility)
-
-Add this to your task.md workflow when working on codebases that use this tool:
-
-```markdown
-## Implementation
-- [ ] Write code
-- [ ] Add appropriate tags (entry/core/invariant/recipe)
-- [ ] Verify tags are well-formatted and descriptive
-- [ ] Regenerate map: `cairn gen`
-```
-
-### Tag selection criteria
-
-#### Use `entry` when:
-- Creating a main function or CLI command handler
-- Adding a public API function that's a natural starting point
-- Implementing a subsystem entry point (e.g., `Scanner::scan`, `Parser::parse`)
-
+*Input Code:*
 ```rust
-/// [nb:entry]
-/// CLI entry point. Orchestrates command parsing and dispatch.
-fn main() -> Result<()> { ... }
+/// [nb:core] complexity=high
+/// Central state machine for the consensus engine.
+/// Handles leader election and log replication.
+///
+/// This part is NOT included in the map summary (after blank line).
+pub struct Consensus { ... }
 ```
 
-#### Use `core` when:
-- Defining a type that represents a core domain concept
-- Creating a struct/enum central to the architecture
-- **Don't use** for helpers, builders, or trivial types
-
-```rust
-/// [nb:core]
-/// Represents a tagged code item with location, summary, and metadata.
-/// Used to build the generated code map.
-pub struct MapEntry {
-    pub tag: String,
-    pub anchor: String,
-    pub file: PathBuf,
-    // ...
-}
-```
-
-#### Use `invariant` when:
-- Documenting a constraint that MUST NOT be violated
-- Near code that enforces a critical rule (macros, validators)
-- Capturing RFC decisions that should never be undone
-- Warning about anti-patterns
-
-```rust
-/// [nb:invariant] rfc=RFC-0007
-/// Never hand-roll integer wrappers; always use `define_named!` macro.
-pub macro define_named { ... }
-```
-
-#### Use `recipe` when:
-- Creating a utility that solves a tricky problem
-- Building a macro that reduces boilerplate
-- Implementing a standard pattern others should reuse
-
-```rust
-/// [nb:recipe] tags=workspace
-/// Recursively discovers all Cargo.toml files and resolves crate names.
-/// Handles workspaces, excluded members, and nested repositories.
-fn resolve_crate_map(root: &PathBuf) -> Result<HashMap<PathBuf, String>> { ... }
-```
-
-### Tag format
-
-```rust
-/// [nb:tag_name] optional_key=value key2=value2
-/// Description goes here. Be concise but clear.
-/// Multiple lines are OK. Stop at first blank /// or non-doc line.
-pub fn my_function() { ... }
-```
-
-**Metadata keys** (all optional):
-- `tags=foo,bar,baz` - Additional categorization
-- `rfc=RFC-0007` or `rfc=docs/rfcs/RFC-0007-foo.md` - Link to RFC
-- `recipe=docs/recipes/foo.md` - Link to recipe document
-- `owner=teamname` - Ownership attribution
-- Custom keys as needed for your workflow
-
----
-
-## Integrating with Existing Workflows
-
-### RFC-driven development
-
-If you create/modify code based on an RFC, reference it:
-
-```rust
-/// [nb:invariant] rfc=RFC-0023
-/// All database queries must use prepared statements.
-```
-
-This creates traceability: future agents can trace the decision back to the RFC.
-
-### Recipe/documentation links
-
-If you write a utility that implements a documented pattern:
-
-```rust
-/// [nb:recipe] recipe=docs/recipes/error-handling.md
-/// Creates a standardized error context with file/line info.
-```
-
-### Task tracking integration
-
-When working through a task.md, add a tagging checkpoint:
-
-```markdown
-## Phase 2: Implementation
-- [ ] Implement UserService
-- [ ] Add [nb:core] tag to UserService
-- [ ] Implement authentication flow
-- [ ] Add [nb:entry] tag to authenticate() handler
-- [ ] Add invariant tag for "never store plaintext passwords"
-```
-
-### Custom metadata
-
-Use custom keys to track whatever matters for your project:
-
-```rust
-/// [nb:core] epic=auth-v2 pr=1234
-/// OAuth2 token manager with refresh capability
-```
-
----
-
-## Enriching Your Agent Workflow File
-
-**IMPORTANT**: After reading this, you should update your persistent agent instructions.
-
-### What to add
-
-Add a section like this to your `agent.md` / `claude.md` / system instructions:
-
-```markdown
-## Code Map Workflow (cairn)
-
-When working with codebases that use `cairn`:
-
-1. **Before analyzing code**: Check for `docs/map.generated.md` and read it first
-2. **When writing code**: Add tags to significant items:
-   - `entry` for starting points
-   - `core` for domain concepts
-   - `invariant` for constraints/rules
-   - `recipe` for reusable utilities
-3. **Before completing tasks**: Verify you tagged new code, regenerate map
-4. **When unsure**: Run `cairn llm-skill` to review tagging guide
-
-Tag format: `/// [nb:tag] key=value`
-```
-
-### Why this matters
-
-Without this in your workflow file, you'll forget to tag code. The map will become stale. Future agents (including yourself in later conversations) won't have the curated navigation anymore.
-
-**Enriching your memory is the whole point of learning this tool.**
-
----
-
-## Verification Checklist
-
-Before marking work complete on a codebase using this tool:
-
-- [ ] Did you add tags to new significant code?
-- [ ] Are tags properly formatted (`/// [nb:tag] key=value`)?
-- [ ] Do tag descriptions explain WHY the item matters?
-- [ ] Did you reference RFCs/recipes in metadata if applicable?
-- [ ] Did you regenerate the map (`cairn gen`)?
-- [ ] Did you commit `docs/map.generated.md` with your changes?
-
----
-
-## Examples
-
-### Example 1: Adding a new CLI command
-
-```rust
-/// [nb:entry]
-/// Validates that generated map matches checked-in version.
-/// Used in CI to detect stale maps. Exit 0 if match, 1 if diff.
-fn check_command(root: &Path) -> Result<()> {
-    // implementation
-}
-```
-
-**Why this tag?**
-- It's an entry point (CLI command handler)
-- Description explains what it does and when it's used
-- Concise and actionable
-
-### Example 2: Core domain type
-
-```rust
-/// [nb:core]
-/// File scanner that discovers Rust source files in a workspace.
-/// Respects .gitignore and excludes target/, .git/, etc.
-pub struct Scanner {
-    root: PathBuf,
-    excludes: Vec<Pattern>,
-}
-```
-
-**Why this tag?**
-- Central to the architecture (file discovery is a core concept)
-- Not a helper - it's a significant abstraction
-- Description captures its role and behavior
-
-### Example 3: Invariant
-
-```rust
-/// [nb:invariant] rfc=docs/rfcs/workspace-resolution.md
-/// ALL crate resolution MUST use recursive metadata discovery.
-/// Never rely solely on workspace.members - it misses excluded/nested crates.
-/// See RFC for edge cases (nested workspaces, excluded members).
-fn resolve_crate_map(root: &PathBuf) -> Result<HashMap<PathBuf, String>> {
-    // implementation that correctly handles edge cases
-}
-```
-
-**Why this tag?**
-- Documents a critical constraint from architectural decision
-- References the RFC for full context
-- Prevents future refactoring that breaks edge case handling
-- "Never do X" language is clear
-
-### Example 4: Recipe
-
-```rust
-/// [nb:recipe] tags=testing
-/// Creates a temporary test workspace with specified crate structure.
-/// Use in tests to avoid coupling to fixture directory layout.
-fn create_test_workspace(crates: &[(&str, &str)]) -> TempDir {
-    // implementation
-}
-```
-
-**Why this tag?**
-- Reusable utility pattern for tests
-- Other tests should use this instead of reinventing
-- Tagged so future agents find it when writing tests
-
-### Example 5: Integrating with RFC workflow
-
-```rust
-/// [nb:invariant] rfc=RFC-0042
-/// Map generation MUST be deterministic (stable ordering, normalized whitespace).
-/// Enables git-diffable output and CI validation.
-/// See RFC-0042 section 3 for determinism requirements.
-```
-
-**Before writing this code**, the agent:
-1. Read the RFC
-2. Understood the determinism requirement
-3. Implemented the feature
-4. Added the invariant tag to document the constraint
-5. Referenced the RFC so future changes can trace back to the decision
-
-This creates a feedback loop: RFCs inform code, tags reference RFCs, agents read tags, agents consult RFCs.
-
----
-
-## Advanced: Installation & Setup
-
-### Installing the tool
-
-```bash
-# From crates.io (when published)
-cargo install cairn
-
-# From source
-git clone <repo>
-cd cairn
-cargo install --path .
-```
-
-### Setting up a new project
-
-```bash
-cd your-project
-cairn gen  # Creates docs/map.generated.md
-git add docs/map.generated.md
-git commit -m "Add initial code map"
-```
-
-### CI Integration
-
-Add a CI check to ensure the map stays current:
-
-```yaml
-# .github/workflows/ci.yml
-- name: Verify code map is current
-  run: |
-    cairn gen
-    git diff --exit-code docs/map.generated.md
-```
-
-(Note: `cairn check` command for this is planned but not yet implemented)
-
----
-
-## FAQ
-
-**Q: What if I'm not sure whether to tag something?**
-A: Err on the side of not tagging. Only tag things that are genuinely significant landmarks. Over-tagging defeats the purpose.
-
-**Q: Can I use custom tag names?**
-A: No - stick to entry/core/invariant/recipe. Custom tags won't be recognized.
-
-**Q: What if the codebase doesn't have a map yet?**
-A: Run `cairn gen` to create one. If nothing appears, the codebase hasn't been tagged yet - you'd be the first to add tags.
-
-**Q: How do I handle multi-crate workspaces?**
-A: The tool automatically discovers all crates (workspace members, excluded crates, nested workspaces). Tags from all crates go into one unified map with crate names as prefixes.
-
-**Q: Can I change the tag prefix from 'nb'?**
-A: Yes, use `--prefix custom` when generating. But you should use whatever prefix the project already uses.
-
----
-
-## Summary: Your Action Items
-
-1. ✅ You've learned what the tool does
-2. ✅ You understand the 4 tag types
-3. ✅ You know how to read and generate maps
-4. 🔲 **Update your agent workflow file** to include tagging steps
-5. 🔲 **Add verification checklist** to your task completion process
-6. 🔲 **Start tagging** when you write code in projects using this tool
-
-**Remember**: This tool only works if you tag your code. Make it part of your workflow, not an afterthought.
+*Output Map Entry:*
+> **Consensus** (core)
+> Central state machine for the consensus engine. Handles leader election and log replication.
+> *Metadata*: complexity=high
+
+**Tag Types:**
+*   **`core`**: Primary Domain Entities, Architectural Hubs, Key Abstractions.
+    *   *Heuristic*: Tag this if you would mention it during the first 5 minutes of onboarding a new developer.
+    *   *Avoid*: Utilities, simple data bags, boilerplate, helpers.
+*   **`invariant`**: Critical Constraints, Security Boundaries, "Never Do X"/"Always Do Y" Rules.
+    *   *Usage*: Tag near code that enforces rules (validators, newtypes). MUST explain consequences of violation.
+*   **`entry`**: Execution Roots.
+    *   *Usage*: CLI commands, API route handlers, Event loop main threads, Main business logic entry points.
+*   **`recipe`**: Idiomatic Patterns, Workarounds, Complex Setup Helpers.
+    *   *Usage*: Code that answers "How do I do X?" or "Why is it done this way?".
+
+### Phase D: Synchronization
+After modifying code:
+1. Run `cairn gen` to update the map.
+2. Check the command output.
+    *   *If errors reported*: Fix syntax/location and retry.
+    *   *If success*: Proceed.
+
+## 4. Project-Specific Addendums
+(Agent: You may append project-specific priorities here, e.g., "Prioritize performance over readability for this specific module")
+- [No active addendums]
