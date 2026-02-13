@@ -21,6 +21,32 @@ Each entry should include:
 
 ---
 
+## 2026-02-13 - The Imperative Pivot (v2)
+
+### Context
+Initial real-world testing showed mixed results with the educational/tutorial style instructions.
+
+### Observations
+1.  **Summarization Loss**: Models tended to "compact" the instructions, losing critical details like specific syntax rules.
+2.  **Gating Failures**: Models used the "Check if applicable" logic to opt-out of tagging (e.g., "Directory is empty, so Cairn is not active yet").
+3.  **Syntax Hallucination**: Models invented their own formats (e.g., `#[derive(ChunkKind)]` instead of doc comments) because the syntax wasn't enforced strictly enough.
+4.  **Over-tagging**: Without a clear philosophy, models tagged trivial helpers as `core`.
+
+### Action Taken
+Complete rewrite of `llm_skill.txt` to shift from **Educational** to **Imperative/Protocol**.
+
+1.  **Mandate vs Guide**: Changed tone from "Here is how you use this" to "You are operating under the Cairn Protocol".
+2.  **Always Active**: Removed conditional logic. The workflow is now "Always Active" to prevent opt-outs.
+3.  **Concrete Heuristics**: Replaced abstract definitions with "The 5-minute Onboarding Test" for `core` tags.
+4.  **Negative Constraints**: Added explicit "Forbidden Patterns" (e.g., `❌ // [nb:core]`) to block specific failure modes.
+5.  **Signal/Noise Philosophy**: Added a dedicated section on "High Signal, Low Noise" to discourage spamming tags.
+6.  **Planning Integration**: Added a requirement to include tagging in the *Plan* phase, not just implementation.
+
+### Expected Result
+Higher compliance, less syntax hallucination, and higher quality (curated) maps.
+
+---
+
 ## 2026-02-12 - Initial Implementation
 
 ### Context
@@ -45,11 +71,11 @@ First implementation of `--llm-desc` and `--llm-skill` commands.
 ### Observations to Track
 
 Monitor for:
-1. **Tag adherence rate**: Do agents remember to tag new code?
-2. **Tag quality**: Are tags meaningful and properly formatted?
-3. **Discovery flow**: Do agents successfully use `--help` → `--llm-skill`?
-4. **Workflow integration**: Do agents actually modify their agent.md/workflows?
-5. **Invariant effectiveness**: Do invariant tags prevent violations?
+1.  **Tag adherence rate**: Do agents remember to tag new code?
+2.  **Tag quality**: Are tags meaningful and properly formatted?
+3.  **Discovery flow**: Do agents successfully use `--help` → `--llm-skill`?
+4.  **Workflow integration**: Do agents actually modify their agent.md/workflows?
+5.  **Invariant effectiveness**: Do invariant tags prevent violations?
 
 ### Next Steps
 - Implement and deploy
