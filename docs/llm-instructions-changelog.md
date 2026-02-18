@@ -21,6 +21,40 @@ Each entry should include:
 
 ---
 
+## 2026-02-18 - Ambiguity Reduction Pass (v3)
+
+### Context
+Real-codebase trial runs (Claude-assisted) exposed ambiguity in tag selection boundaries, especially around over-tagging and `entry` vs `core` classification.
+
+### Observations
+1.  Agents still over-tagged discoverable implementation details when instructions were interpreted too literally.
+2.  `entry` and `core` boundaries were sometimes conflated in library-style code (important types tagged as `entry`).
+3.  Invariant tags were repeated at multiple enforcement sites instead of being anchored to the defining constraint location.
+
+### Action Taken
+Updated `llm_skill.txt` to tighten selection criteria and reduce ambiguity:
+
+1.  Added a **Discoverability** principle to explicitly skip tags that readers naturally encounter from already-tagged landmarks.
+2.  Changed implementation phase from **Tag-Always** to **Tag-When-Appropriate** to discourage mandatory tagging of every significant edit.
+3.  Expanded tag type definitions with stronger boundaries:
+    - `core`: story-level domain/architecture concepts, including qualifying modules.
+    - `entry`: temporal invocation roots only (functions/methods/invocation points), never types/modules.
+    - `invariant`: tag the defining constraint location, not every enforcement call site.
+    - `recipe`: broadened to include reusable organizational/test-support patterns.
+4.  Added temporary project addendum to omit `rfc=` metadata while ADR→RFC migration is incomplete.
+
+### Expected Benefits
+1.  Better map signal-to-noise ratio via fewer redundant tags.
+2.  More consistent `entry` vs `core` tagging decisions.
+3.  Less duplicate `invariant` coverage.
+
+### Regression Risks To Monitor
+1.  **Under-tagging**: Combining "if in doubt, do not tag" with discoverability rules may suppress useful landmarks.
+2.  **Policy drift**: The temporary `rfc=` omission can conflict with existing docs/spec examples until those are updated.
+3.  **Interpretation drift**: Planning language still implies tags "will require" updates while implementation is now conditional.
+
+---
+
 ## 2026-02-13 - The Imperative Pivot (v2)
 
 ### Context
