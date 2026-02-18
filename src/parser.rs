@@ -12,6 +12,12 @@ pub struct RustParser {
     prefix: String,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DocCommentKind {
+    Outer,
+    Inner,
+}
+
 impl RustParser {
     pub fn new(prefix: &str) -> Result<Self> {
         let mut parser = Parser::new();
@@ -92,7 +98,7 @@ impl RustParser {
                 // Simplified: Tree-sitter usually treats comments as separate nodes.
                 // We need to check if this comment has our tag.
                 let text = &source[child.byte_range()];
-                if let Some((tag, meta_str, desc)) = self.parse_comment(text) {
+                if let Some((tag, meta_str, desc, comment_kind)) = self.parse_comment(text) {
                     let mut full_desc = desc;
 
                     // Aggregate subsequent comments
@@ -104,20 +110,33 @@ impl RustParser {
                     while let Some(next) = current_comment.next_sibling() {
                         if next.kind() == "line_comment" || next.kind() == "block_comment" {
                             let next_text = &source[next.byte_range()];
-                            // Check if it's a continuation (starts with ///)
-                            // Usually line_comment includes the slashes.
-                            full_desc.push('\n');
-                            full_desc.push_str(next_text.trim_start_matches('/').trim());
-                            current_comment = next;
-                            // Note: this will result in the main loop visiting these nodes again and finding no tag.
-                            // That is harmless but inefficient.
+                            if let Some((_, next_content)) = self.extract_doc_comment_content(next_text) {
+                                if next_content.is_empty() {
+                                    break;
+                                }
+                                let prefix_marker = format!("[{}:", self.prefix);
+                                if next_content.starts_with(&prefix_marker) {
+                                    break;
+                                }
+                                full_desc.push('\n');
+                                full_desc.push_str(&next_content);
+                                current_comment = next;
+                                // Note: this will result in the main loop visiting these nodes again and finding no tag.
+                                // That is harmless but inefficient.
+                            } else {
+                                break;
+                            }
                         } else {
                             break;
                         }
                     }
 
-                    // Look ahead for the item using the *last* comment node
-                    let anchor = self.find_anchor_item(current_comment, current_path, source);
+                    let anchor = if comment_kind == DocCommentKind::Inner {
+                        current_path.to_string()
+                    } else {
+                        // Look ahead for the item using the *last* comment node
+                        self.find_anchor_item(current_comment, current_path, source)
+                    };
 
                     let metadata = self.parse_metadata(meta_str);
 
@@ -141,9 +160,9 @@ impl RustParser {
         }
     }
 
-    fn parse_comment(&self, text: &str) -> Option<(String, String, String)> {
-        // Looking for /// [prefix:<tag>] ...
-        let content = text.trim_start_matches('/').trim();
+    fn parse_comment(&self, text: &str) -> Option<(String, String, String, DocCommentKind)> {
+        // Looking for /// [prefix:<tag>] ... or //! [prefix:<tag>] ...
+        let (comment_kind, content) = self.extract_doc_comment_content(text)?;
         let prefix_marker = format!("[{}:", self.prefix);
 
         if content.starts_with(&prefix_marker) {
@@ -153,8 +172,23 @@ impl RustParser {
                 let rest = &content[end_bracket + 1..];
                 // Split rest into metadata (key=value) and description
                 // For now simple heuristic
-                return Some((tag.to_string(), rest.to_string(), rest.to_string())); // TODO: refine
+                return Some((
+                    tag.to_string(),
+                    rest.to_string(),
+                    rest.to_string(),
+                    comment_kind,
+                )); // TODO: refine
             }
+        }
+        None
+    }
+
+    fn extract_doc_comment_content(&self, text: &str) -> Option<(DocCommentKind, String)> {
+        if let Some(rest) = text.strip_prefix("///") {
+            return Some((DocCommentKind::Outer, rest.trim().to_string()));
+        }
+        if let Some(rest) = text.strip_prefix("//!") {
+            return Some((DocCommentKind::Inner, rest.trim().to_string()));
         }
         None
     }
@@ -246,5 +280,39 @@ mod tests {
             "Expected anchor to contain 'ChunkKind', found: '{}'",
             entry.anchor
         );
+    }
+
+    #[test]
+    fn test_inner_doc_comment_anchors_to_containing_module() {
+        let code = r#"
+            mod graph {
+                //! [nb:core]
+                //! Graph construction subsystem.
+                pub struct Node;
+            }
+        "#;
+
+        let parser = RustParser::new("nb").unwrap();
+        let mut entries = Vec::new();
+
+        let mut ts_parser = Parser::new();
+        ts_parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        let tree = ts_parser.parse(code, None).expect("Failed to parse");
+
+        parser.walk_tree(
+            tree.root_node(),
+            code,
+            "test_crate",
+            "test_file.rs",
+            &mut entries,
+        );
+
+        assert_eq!(entries.len(), 1);
+        let entry = &entries[0];
+        assert_eq!(entry.tag, "core");
+        assert_eq!(entry.anchor, "test_crate::graph");
+        assert!(entry.summary.contains("Graph construction subsystem."));
     }
 }
