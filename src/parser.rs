@@ -194,13 +194,21 @@ impl RustParser {
     }
 
     fn find_anchor_item(&self, comment_node: Node, current_path: &str, source: &str) -> String {
-        // Look at next named sibling, skipping attributes
+        // Look at next named sibling, skipping attributes and non-tag doc comments
+        // that may follow a blank doc-comment separator.
         let mut next = comment_node.next_named_sibling();
 
         while let Some(sibling) = next {
             if sibling.kind() == "attribute_item" {
                 next = sibling.next_named_sibling();
                 continue;
+            }
+            if sibling.kind() == "line_comment" || sibling.kind() == "block_comment" {
+                let text = &source[sibling.byte_range()];
+                if self.extract_doc_comment_content(text).is_some() {
+                    next = sibling.next_named_sibling();
+                    continue;
+                }
             }
 
             // Extract name from the item
@@ -314,5 +322,47 @@ mod tests {
         assert_eq!(entry.tag, "core");
         assert_eq!(entry.anchor, "test_crate::graph");
         assert!(entry.summary.contains("Graph construction subsystem."));
+    }
+
+    #[test]
+    fn test_blank_doc_separator_before_item_still_resolves_anchor() {
+        let code = r#"
+            /// [nb:core]
+            /// Symbolic stack state.
+            ///
+            /// Used during abstract interpretation.
+            #[derive(Debug, Clone)]
+            pub struct AbstractStack {
+                data: Vec<u8>,
+            }
+        "#;
+
+        let parser = RustParser::new("nb").unwrap();
+        let mut entries = Vec::new();
+
+        let mut ts_parser = Parser::new();
+        ts_parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        let tree = ts_parser.parse(code, None).expect("Failed to parse");
+
+        parser.walk_tree(
+            tree.root_node(),
+            code,
+            "test_crate",
+            "test_file.rs",
+            &mut entries,
+        );
+
+        assert_eq!(entries.len(), 1);
+        let entry = &entries[0];
+        assert_eq!(entry.tag, "core");
+        assert!(
+            entry.anchor.contains("AbstractStack"),
+            "Expected anchor to contain 'AbstractStack', found: '{}'",
+            entry.anchor
+        );
+        assert!(entry.summary.contains("Symbolic stack state."));
+        assert!(!entry.summary.contains("Used during abstract interpretation."));
     }
 }
