@@ -160,14 +160,23 @@ impl RustParser {
     }
 
     fn find_anchor_item(&self, comment_node: Node, current_path: &str, source: &str) -> String {
-        // Look at next named sibling
-        if let Some(next) = comment_node.next_named_sibling() {
-            // Extract name from `next` node based on its type (fn_item, struct_item, etc.)
-            if let Some(name_node) = next.child_by_field_name("name") {
+        // Look at next named sibling, skipping attributes
+        let mut next = comment_node.next_named_sibling();
+
+        while let Some(sibling) = next {
+            if sibling.kind() == "attribute_item" {
+                next = sibling.next_named_sibling();
+                continue;
+            }
+
+            // Extract name from the item
+            if let Some(name_node) = sibling.child_by_field_name("name") {
                 let name = &source[name_node.byte_range()];
                 return format!("{}::{}", current_path, name);
             }
+            break;
         }
+
         format!("{}:{}", current_path, comment_node.start_position().row + 1)
     }
 
@@ -191,5 +200,51 @@ impl RustParser {
             .filter(|l| !l.is_empty())
             .collect::<Vec<_>>()
             .join(" ")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tree_sitter::Parser;
+
+    #[test]
+    fn test_enum_with_derive() {
+        let code = r#"
+            /// [nb:core]
+            /// Classifies the semantic role of a code chunk.
+            #[derive(Debug, Clone, Serialize, Deserialize)]
+            pub enum ChunkKind {
+                Function,
+                Struct,
+            }
+        "#;
+
+        let parser = RustParser::new("nb").unwrap();
+        let mut entries = Vec::new();
+
+        let mut ts_parser = Parser::new();
+        ts_parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        let tree = ts_parser.parse(code, None).expect("Failed to parse");
+
+        parser.walk_tree(
+            tree.root_node(),
+            code,
+            "test_crate",
+            "test_file.rs",
+            &mut entries,
+        );
+
+        assert_eq!(entries.len(), 1);
+        let entry = &entries[0];
+        assert_eq!(entry.tag, "core");
+        // This is what fails currently: matches "derive" or something instead of "ChunkKind"
+        assert!(
+            entry.anchor.contains("ChunkKind"),
+            "Expected anchor to contain 'ChunkKind', found: '{}'",
+            entry.anchor
+        );
     }
 }

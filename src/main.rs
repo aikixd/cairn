@@ -20,13 +20,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Generate a curated code map from tagged Rust doc comments.
     Gen {
+        /// Repository directory to scan recursively for Rust files.
         #[arg(long, default_value = ".")]
         root: PathBuf,
+        /// Path to write the generated Markdown map.
         #[arg(long, default_value = "docs/map.generated.md")]
         out_md: PathBuf,
+        /// Optional path to also write JSON output.
         #[arg(long)]
         out_json: Option<PathBuf>,
+        /// Tag directive prefix used in source comments (e.g., `[nb:entry]`).
         #[arg(long, default_value = "nb")]
         prefix: String,
     },
